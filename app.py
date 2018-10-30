@@ -1,9 +1,7 @@
 import urllib2
 from bs4 import BeautifulSoup
 
-
 ## Model Classes
-
 #Featured Info
 class FeatureThumb:
     title = ""
@@ -18,10 +16,13 @@ class FeaturedBlock:
     featureThumbs = []
 
 #Column Info
-class DailyRow:
+class DailyArticle:
     title = ""
     topic = ""
+    link = ""
     description = ""
+    political_side = ""
+    source = ""
 
 ## Script Variables
 #AllSides
@@ -31,7 +32,10 @@ all_sides_soup = BeautifulSoup(all_sides_balanced_html, 'html.parser')
 
 #FeaturedBlocks
 featuredBlocks = []
-dailyRows = []
+dailyArticles = []
+
+def clean_bias_rating(rawRating):
+    return rawRating.replace("Political News Media Bias Rating:", "").strip()
 
 ## Script Functions
 def scrape_featured_blocks():
@@ -59,11 +63,15 @@ def scrape_featured_blocks():
             thumb.title = title_soup.text
             thumb.link = title_soup['href']
 
-            political_side_soup = feature_soup.find('div',class_='global-bias')
-            thumb.political_side = political_side_soup.text
+            #political_side_soup = feature_soup.find('div',class_='global-bias')
+            #thumb.political_side = political_side_soup.text
+            # ^ using img tag below to obtain political side information (left,right,center)
 
-            source_side_soup = feature_soup.find('div',class_='source-area').find('a')
-            thumb.source = source_side_soup.text
+            source_area_soup = feature_soup.find('div',class_='source-area')
+            source_img = source_area_soup.find('img')
+            thumb.political_side = clean_bias_rating(source_img['title'])
+            source_soup = source_area_soup.find('a')
+            thumb.source = source_soup.text
 
             block.featureThumbs.append(thumb)
 
@@ -74,47 +82,61 @@ def scrape_columns():
     daily_rows = all_sides_soup.find_all('div', class_=daily_row_tag)
 
     for row in daily_rows:
-        dailyRow = DailyRow()
+        article = DailyArticle()
 
         title_soup = row.find('div',class_='news-title').find('a')
-        dailyRow.title = title_soup.text
+        article.title = title_soup.text
+        article.link = title_soup['href']
 
         topic_soup = row.find('div',class_='news-topic').find('a')
-        dailyRow.topic = topic_soup.text
+        article.topic = topic_soup.text
+
+        source_soup = row.find('div',class_='news-source').find('a')
+        article.source = source_soup.text
+
+        bias_soup = row.find('div',class_='bias-container')
+        bias_image = bias_soup.find('img')
+        article.political_side = clean_bias_rating(bias_image['title'])
 
         body_soup = row.find('div',class_='news-body')
         paragraph_soup = body_soup.find('p')
         if paragraph_soup is not None:
-            dailyRow.description = paragraph_soup.text
+            article.description = paragraph_soup.text
 
-        #dailyRow.description = body_soup.find('p').text
+        dailyArticles.append(article)
 
-        dailyRows.append(dailyRow)
+def printResult():
+    print "BLOCKS"
+    for block in featuredBlocks:
+        print "Headline:"
+        print block.title
+        print block.description
+        print block.link
+        print "\n-----\n"
+        print "Thumbnails:"
+        for thumb in block.featureThumbs:
+            print thumb.title
+            print thumb.link
+            print "SOURCE: " + thumb.source
+            print "SIDE: " + thumb.political_side
+            print "\n"
+        print "\n\n"
 
-    #print daily_rows
+    print "ARTICLES"
+    for article in dailyArticles:
+        print "Article"
+        print "Title: " + article.title
+        print "Topic: " + article.topic
+        print "Desc: " + article.description
+        print article.source
+        print article.link
+        print article.political_side
+        print "\n\n"
 
 ## On runtime, do this:
-#scrape_featured_blocks()
-scrape_columns()
+def main():
+    scrape_featured_blocks()
+    scrape_columns()
+    printResult()
 
-for block in featuredBlocks:
-    print "Headline:"
-    print block.title
-    print block.description
-    print block.link
-    print "\n-----\n"
-    print "Thumbnails:"
-    for thumb in block.featureThumbs:
-        print thumb.title
-        print thumb.link
-        print "SOURCE: " + thumb.source
-        print "SIDE: " + thumb.political_side
-        print "\n"
-    print "\n\n"
-
-for article in dailyRows:
-    print "Article"
-    print "Title: " + article.title
-    print "Topic: " + article.topic
-    print "Desc: " + article.description
-    print "\n\n"
+main()
