@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 
 
 ## Model Classes
+
+#Featured Info
 class FeatureThumb:
     title = ""
     link = ""
@@ -15,6 +17,12 @@ class FeaturedBlock:
     description = ""
     featureThumbs = []
 
+#Column Info
+class DailyRow:
+    title = ""
+    topic = ""
+    description = ""
+
 ## Script Variables
 #AllSides
 all_sides_balanced = 'https://www.allsides.com/unbiased-balanced-news' #HomePage
@@ -23,6 +31,7 @@ all_sides_soup = BeautifulSoup(all_sides_balanced_html, 'html.parser')
 
 #FeaturedBlocks
 featuredBlocks = []
+dailyRows = []
 
 ## Script Functions
 def scrape_featured_blocks():
@@ -61,10 +70,31 @@ def scrape_featured_blocks():
         featuredBlocks.append(block)
 
 def scrape_columns():
-    print ""
+    daily_row_tag = 'allsides-daily-row'
+    daily_rows = all_sides_soup.find_all('div', class_=daily_row_tag)
+
+    for row in daily_rows:
+        dailyRow = DailyRow()
+
+        title_soup = row.find('div',class_='news-title').find('a')
+        dailyRow.title = title_soup.text
+
+        topic_soup = row.find('div',class_='news-topic').find('a')
+        dailyRow.topic = topic_soup.text
+
+        body_soup = row.find('div',class_='news-body')
+        paragraph_soup = body_soup.find('p')
+        if paragraph_soup is not None:
+            dailyRow.description = paragraph_soup.text
+
+        #dailyRow.description = body_soup.find('p').text
+
+        dailyRows.append(dailyRow)
+
+    #print daily_rows
 
 ## On runtime, do this:
-scrape_featured_blocks()
+#scrape_featured_blocks()
 scrape_columns()
 
 for block in featuredBlocks:
@@ -80,4 +110,11 @@ for block in featuredBlocks:
         print "SOURCE: " + thumb.source
         print "SIDE: " + thumb.political_side
         print "\n"
+    print "\n\n"
+
+for article in dailyRows:
+    print "Article"
+    print "Title: " + article.title
+    print "Topic: " + article.topic
+    print "Desc: " + article.description
     print "\n\n"
