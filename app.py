@@ -132,7 +132,7 @@ def scrape_columns():
         dailyArticles.append(article)
 
 #add articles to database
-def updateDatabaseArticles(articlesList):
+def update_database_articles(articlesList):
     if db_conn is None:
         return
 
@@ -143,7 +143,7 @@ def updateDatabaseArticles(articlesList):
             cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source) values(%s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, formatted_date))
             db_conn.commit()
 
-def updateDatabaseHeadlines(headlinesList):
+def update_database_headlines(headlinesList):
     if db_conn is None:
         return
 
@@ -153,9 +153,9 @@ def updateDatabaseHeadlines(headlinesList):
         with db_conn.cursor() as cur:
             cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source) values(%s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, headline.title, headline.topic, headline.description, headline.link, headline.political_side, headline.source, formatted_date))
             db_conn.commit()
-        updateDatabaseArticles(headline.opinionArticles) #TODO reference the ID of the articles created here in a new table of relations
+        update_database_articles(headline.opinionArticles) #TODO reference the ID of the articles created here in a new table of relations
 
-def printResult():
+def print_result():
     print "BLOCKS"
     for block in featuredBlocks:
         print "Headline:"
@@ -189,12 +189,12 @@ def printResult():
 def main():
     scrape_featured_blocks()
     scrape_columns()
-    printResult()
+    print_result()
 
     print "[DB] Updating Articles"
-    updateDatabaseArticles(dailyArticles)
+    update_database_articles(dailyArticles)
 
     print "[DB] Updating Featured Headlines"
-    updateDatabaseHeadlines(featuredBlocks)
+    update_database_headlines(featuredBlocks)
 
 main()
