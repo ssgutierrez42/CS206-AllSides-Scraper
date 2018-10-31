@@ -1,19 +1,36 @@
+## Imports
+#RDS
+import secrets
+
+#Scraping
 import urllib2
 from bs4 import BeautifulSoup
 
+#Database Connection
+import pymysql
+from datetime import datetime
+
+username = secrets.db_username
+password = secrets.db_password
+db_name = secrets.db_name
+rds_host = secrets.host
+
+try:
+    db_conn = pymysql.connect(rds_host, user=username, passwd=password, db=db_name, connect_timeout=5)
+except:
+    logger.error("ERROR: Unexpected error: Could not connect to MySql instance.")
+    sys.exit()
+
 ## Model Classes
 #Featured Info
-class FeatureThumb:
-    title = ""
-    link = ""
-    political_side = ""
-    source = ""
-
 class FeaturedBlock:
     title = ""
     link = ""
+    topic = ""
     description = ""
-    featureThumbs = []
+    political_side = "unbiased_balanced"
+    source = "AllSides"
+    opinionArticles = []
 
 #Column Info
 class DailyArticle:
@@ -42,10 +59,9 @@ def scrape_featured_blocks():
     featured_block_tag = 'block-views-story-id-single-story-block'
     featured_blocks = all_sides_soup.find_all(id=lambda value: value and value.startswith(featured_block_tag))
 
-    counter = 0
     for featured_block in featured_blocks:
         block = FeaturedBlock()
-        block.featureThumbs = []
+        block.opinionArticles = []
 
         title_soup = featured_block.find('h2',class_='story-title').find('a')
         block.link = title_soup['href']
@@ -54,14 +70,19 @@ def scrape_featured_blocks():
         description_soup = featured_block.find('div',class_='story-description').find('a')
         block.description = description_soup.text
 
+        topic_soup = featured_block.find('div',class_='news-topic').find('a')
+        block.topic = topic_soup.text
+
         #feature-thumbs (three other thumbnail article suggestions)
         feature_thumbs_soup = featured_block.find_all('div',class_='feature-thumbs')
         for feature_soup in feature_thumbs_soup:
-            thumb = FeatureThumb()
+            thumb = DailyArticle()
+            thumb.topic = block.topic
+            thumb.description = "N/A"
 
             title_soup = feature_soup.find('div',class_='news-title').find('a')
             thumb.title = title_soup.text
-            thumb.link = title_soup['href']
+            thumb.link = 'https://www.allsides.com/' + title_soup['href']
 
             #political_side_soup = feature_soup.find('div',class_='global-bias')
             #thumb.political_side = political_side_soup.text
@@ -73,10 +94,11 @@ def scrape_featured_blocks():
             source_soup = source_area_soup.find('a')
             thumb.source = source_soup.text
 
-            block.featureThumbs.append(thumb)
+            block.opinionArticles.append(thumb)
 
         featuredBlocks.append(block)
 
+#scrape article columns on site (left, right, center)
 def scrape_columns():
     daily_row_tag = 'allsides-daily-row'
     daily_rows = all_sides_soup.find_all('div', class_=daily_row_tag)
@@ -102,8 +124,36 @@ def scrape_columns():
         paragraph_soup = body_soup.find('p')
         if paragraph_soup is not None:
             article.description = paragraph_soup.text
+        elif body_soup.text is not None:
+            article.description = body_soup.text.strip()
+        else:
+            article.description = "N/A"
 
         dailyArticles.append(article)
+
+#add articles to database
+def updateDatabaseArticles(articlesList):
+    if db_conn is None:
+        return
+
+    for article in articlesList:
+        now = datetime.utcnow()
+        formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
+        with db_conn.cursor() as cur:
+            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source) values(%s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, formatted_date))
+            db_conn.commit()
+
+def updateDatabaseHeadlines(headlinesList):
+    if db_conn is None:
+        return
+
+    for headline in headlinesList:
+        now = datetime.utcnow()
+        formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
+        with db_conn.cursor() as cur:
+            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source) values(%s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, headline.title, headline.topic, headline.description, headline.link, headline.political_side, headline.source, formatted_date))
+            db_conn.commit()
+        updateDatabaseArticles(headline.opinionArticles) #TODO reference the ID of the articles created here in a new table of relations
 
 def printResult():
     print "BLOCKS"
@@ -112,11 +162,13 @@ def printResult():
         print block.title
         print block.description
         print block.link
+        print block.topic
         print "\n-----\n"
         print "Thumbnails:"
-        for thumb in block.featureThumbs:
+        for thumb in block.opinionArticles:
             print thumb.title
             print thumb.link
+            print thumb.topic
             print "SOURCE: " + thumb.source
             print "SIDE: " + thumb.political_side
             print "\n"
@@ -138,5 +190,11 @@ def main():
     scrape_featured_blocks()
     scrape_columns()
     printResult()
+
+    print "[DB] Updating Articles"
+    updateDatabaseArticles(dailyArticles)
+
+    print "[DB] Updating Featured Headlines"
+    updateDatabaseHeadlines(featuredBlocks)
 
 main()
