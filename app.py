@@ -1,7 +1,7 @@
 ## Imports
 #RDS
 import secrets
-
+import allSidesScraper3
 #Scraping
 import urllib2
 from bs4 import BeautifulSoup
