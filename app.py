@@ -1,9 +1,9 @@
 ## Imports
 #RDS
 import secrets
-import allSidesScraper3
-from allSidesScraper3 import scrapeArticle
-from allSidesScraper3 import driver
+# import allSidesScraper3
+# from allSidesScraper3 import scrapeArticle
+# from allSidesScraper3 import driver
 #Scraping
 import urllib2
 from bs4 import BeautifulSoup
@@ -139,6 +139,7 @@ def update_database_articles(articlesList):
         return
 
     for article in articlesList:
+        #TODO: call John's scraper here for article.link, and store result in databse using query below.
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
