@@ -2,6 +2,8 @@
 #RDS
 import secrets
 import allSidesScraper3
+from allSidesScraper3 import scrapeArticle
+from allSidesScraper3 import driver
 #Scraping
 import urllib2
 from bs4 import BeautifulSoup
