@@ -1,10 +1,10 @@
 ## Imports
 #RDS
 import secrets
-import allSidesScraper3
-from allSidesScraper3 import scrapeArticle
-from allSidesScraper3 import driver
-from allSidesScraper3 import printable
+import allSidesScraper4
+from allSidesScraper4 import scrapeArticle
+from allSidesScraper4 import driver
+from allSidesScraper4 import printable
 #Scraping
 import urllib2
 from bs4 import BeautifulSoup
