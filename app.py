@@ -1,9 +1,10 @@
 ## Imports
 #RDS
 import secrets
-# import allSidesScraper3
-# from allSidesScraper3 import scrapeArticle
-# from allSidesScraper3 import driver
+import allSidesScraper3
+from allSidesScraper3 import scrapeArticle
+from allSidesScraper3 import driver
+from allSidesScraper3 import printable
 #Scraping
 import urllib2
 from bs4 import BeautifulSoup
@@ -139,11 +140,15 @@ def update_database_articles(articlesList):
         return
 
     for article in articlesList:
-        #TODO: call John's scraper here for article.link, and store result in databse using query below.
+        articleInfo = scrapeArticle([article])
+        Text = articleInfo[article][0]
+        Published = str(articleInfo[article][1])
+        WordCount = str(articleInfo[article][2])
+        CharCount = str(articleInfo[article][3])
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
-            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source) values(%s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, formatted_date))
+            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source, wordcount, text, date_published) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, formatted_date, WordCount, Text, Published))
             db_conn.commit()
 
 def update_database_headlines(headlinesList):
@@ -155,6 +160,7 @@ def update_database_headlines(headlinesList):
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
             cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source) values(%s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, headline.title, headline.topic, headline.description, headline.link, headline.political_side, headline.source, formatted_date))
+            #cur.execute('insert into articles (title, topic, description) values(%s, %s, %s)', (title, topic, description))
             db_conn.commit()
         update_database_articles(headline.opinionArticles) #TODO reference the ID of the articles created here in a new table of relations
 
