@@ -140,11 +140,11 @@ def update_database_articles(articlesList):
         return
 
     for article in articlesList:
-        articleInfo = scrapeArticle([article])
-        Text = articleInfo[article][0]
-        Published = str(articleInfo[article][1])
-        WordCount = str(articleInfo[article][2])
-        CharCount = str(articleInfo[article][3])
+        articleInfo = scrapeArticle([article.link])
+        Text = articleInfo[article.link][0]
+        Published = str(articleInfo[article.link][1])
+        WordCount = str(articleInfo[article.link][2])
+        CharCount = str(articleInfo[article.link][3])
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
