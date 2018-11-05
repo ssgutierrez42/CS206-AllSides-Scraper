@@ -6,15 +6,21 @@ import requests
 import urllib2
 import justext
 import string
+import time
+from selenium.webdriver.firefox.options import Options
 #driver = webdriver.Firefox()
-options = webdriver.ChromeOptions()
+'''options = webdriver.ChromeOptions()
 options.add_argument('--ignore-certificate-errors')
 options.add_argument('--ignore-ssl-errors')
 options.add_argument("headless")
 options.add_argument('--disable-gpu')
 options.add_argument("--log-level=3")
 options.add_argument("user-agent=Chrome")
-driver = webdriver.Chrome(chrome_options=options)
+driver = webdriver.Chrome(chrome_options=options)'''
+#driver = webdriver.PhantomJS()
+options = Options()
+options.headless = True
+driver = webdriver.Firefox(options = options)
 
 def printable(line):
 	if (line == None):
@@ -35,8 +41,9 @@ def scrapeArticle(listOfAllsideUrls):
 		l = list()
 		try:
 			driver.get(url2)
-			python_button = driver.find_elements_by_class_name("open-new-page")
-			python_button[0].click()
+			time.sleep(1)
+			#python_button = driver.find_elements_by_class_name("open-new-page")
+			#python_button[0].click()
 			url = driver.current_url
 			response = requests.get(url)
 			paragraphs = justext.justext(response.content, justext.get_stoplist("English"))
@@ -53,7 +60,8 @@ def scrapeArticle(listOfAllsideUrls):
 			charCount = len(Article)
 			wordCount = len(Article.split())
 			articleDict[url2] = (Article,date,wordCount,charCount,author)
+			print('success')
 			return (Article,date,wordCount,charCount,author)
 		except:
-			continue
+			return('','','','','')
 		return('','','','','')

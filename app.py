@@ -153,7 +153,7 @@ def update_database_articles(articlesList):
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
-            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source, wordcount, text, date_published, author) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, formatted_date, WordCount, Text, Published, authors))
+            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source, wordcount, text, date_published, author) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, WordCount, Text, Published, authors, formatted_date))
             db_conn.commit()
 
 def update_database_headlines(headlinesList):
