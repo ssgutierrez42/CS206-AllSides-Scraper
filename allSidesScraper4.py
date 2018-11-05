@@ -53,6 +53,7 @@ def scrapeArticle(listOfAllsideUrls):
 			charCount = len(Article)
 			wordCount = len(Article.split())
 			articleDict[url2] = (Article,date,wordCount,charCount,author)
+			return (Article,date,wordCount,charCount,author)
 		except:
 			continue
-	return articleDict
+		return('','','','','')
