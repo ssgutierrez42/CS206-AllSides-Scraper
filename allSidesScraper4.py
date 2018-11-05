@@ -31,6 +31,11 @@ def printable(line):
 
 def scrapeArticle(listOfAllsideUrls):
 	articleDict = dict()
+	date = ''
+	Article = ''
+	wordCount = ''
+	charCount = ''
+	author = ''
 	for url2 in listOfAllsideUrls:
 		date = None
 		try:
@@ -41,27 +46,30 @@ def scrapeArticle(listOfAllsideUrls):
 		l = list()
 		try:
 			driver.get(url2)
-			time.sleep(1)
-			#python_button = driver.find_elements_by_class_name("open-new-page")
-			#python_button[0].click()
+			time.sleep(5)
+			try:
+				python_button = driver.find_elements_by_class_name("open-new-page")
+				python_button[0].click()
+			except:
+				pass
 			url = driver.current_url
 			response = requests.get(url)
 			paragraphs = justext.justext(response.content, justext.get_stoplist("English"))
-			author = ""
+			#author = ""
 			for paragraph in paragraphs:
 				t = paragraph.text.encode('ascii','ignore').lower()
 				if (not (paragraph.is_boilerplate) and (len(paragraph.text)>30)):
 					l.append(printable(paragraph.text.encode('ascii','ignore')))
 					if('...'in paragraph.text):
 						break
-				elif((len(t)<40) and (('by' in t) or ('author' in t))):
-					author = t
+				elif((len(t)<40 and (len(t)>5)) and ('by' in t)):
+					author = t.replace('by ','')
 			Article = '\n'.join(l)
-			charCount = len(Article)
-			wordCount = len(Article.split())
-			articleDict[url2] = (Article,date,wordCount,charCount,author)
-			print('success')
-			return (Article,date,wordCount,charCount,author)
+			if(len(Article)>5):
+				charCount = len(Article)
+				wordCount = len(Article.split())
+			#articleDict[url2] = (Article,date,wordCount,charCount,author)
+			#return (Article,date,wordCount,charCount,author)
 		except:
-			return('','','','','')
-		return('','','','','')
+			pass
+	return (Article,date,wordCount,charCount,author)

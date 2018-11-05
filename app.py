@@ -150,6 +150,11 @@ def update_database_articles(articlesList):
         WordCount = str(articleInfo[2])
         CharCount = str(articleInfo[3])
         authors = str(articleInfo[4])
+        print(Text)
+        print(Published)
+        print(WordCount)
+        print(CharCount)
+        print(authors)
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
