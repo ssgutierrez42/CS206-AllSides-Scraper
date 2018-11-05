@@ -6,13 +6,14 @@ import requests
 import urllib2
 import justext
 import string
-
+#driver = webdriver.Firefox()
 options = webdriver.ChromeOptions()
 options.add_argument('--ignore-certificate-errors')
 options.add_argument('--ignore-ssl-errors')
 options.add_argument("headless")
 options.add_argument('--disable-gpu')
 options.add_argument("--log-level=3")
+options.add_argument("user-agent=Chrome")
 driver = webdriver.Chrome(chrome_options=options)
 
 def printable(line):
@@ -29,7 +30,6 @@ def scrapeArticle(listOfAllsideUrls):
 		try:
 			date = url2.split('/')[4].split('-')
 			date = date[1]+'/'+date[2]+'/'+date[0]
-			print(date)
 		except:
 			pass
 		l = list()
