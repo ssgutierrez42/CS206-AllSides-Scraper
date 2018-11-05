@@ -54,5 +54,3 @@ def scrapeArticle(listOfAllsideUrls):
 		except:
 			continue
 	return articleDict
-
-driver.close()
