@@ -107,32 +107,35 @@ def scrape_columns():
     daily_rows = all_sides_soup.find_all('div', class_=daily_row_tag)
 
     for row in daily_rows:
-        article = DailyArticle()
+        try:
+            article = DailyArticle()
 
-        title_soup = row.find('div',class_='news-title').find('a')
-        article.title = title_soup.text
-        article.link = title_soup['href']
+            title_soup = row.find('div',class_='news-title').find('a')
+            article.title = title_soup.text
+            article.link = title_soup['href']
 
-        topic_soup = row.find('div',class_='news-topic').find('a')
-        article.topic = topic_soup.text
+            topic_soup = row.find('div',class_='news-topic').find('a')
+            article.topic = topic_soup.text
 
-        source_soup = row.find('div',class_='news-source').find('a')
-        article.source = source_soup.text
+            source_soup = row.find('div',class_='news-source').find('a')
+            article.source = source_soup.text
 
-        bias_soup = row.find('div',class_='bias-container')
-        bias_image = bias_soup.find('img')
-        article.political_side = clean_bias_rating(bias_image['title'])
+            bias_soup = row.find('div',class_='bias-container')
+            bias_image = bias_soup.find('img')
+            article.political_side = clean_bias_rating(bias_image['title'])
 
-        body_soup = row.find('div',class_='news-body')
-        paragraph_soup = body_soup.find('p')
-        if paragraph_soup is not None:
-            article.description = paragraph_soup.text
-        elif body_soup.text is not None:
-            article.description = body_soup.text.strip()
-        else:
-            article.description = "N/A"
+            body_soup = row.find('div',class_='news-body')
+            paragraph_soup = body_soup.find('p')
+            if paragraph_soup is not None:
+                article.description = paragraph_soup.text
+            elif body_soup.text is not None:
+                article.description = body_soup.text.strip()
+            else:
+                article.description = "N/A"
 
-        dailyArticles.append(article)
+            dailyArticles.append(article)
+        except:
+            continue
 
 #add articles to database
 def update_database_articles(articlesList):
@@ -140,11 +143,12 @@ def update_database_articles(articlesList):
         return
 
     for article in articlesList:
-        articleInfo = scrapeArticle([article.link])
-        Text = articleInfo[article.link][0]
-        Published = str(articleInfo[article.link][1])
-        WordCount = str(articleInfo[article.link][2])
-        CharCount = str(articleInfo[article.link][3])
+        articlelink = article.link.encode('ascii','ignore')
+        articleInfo = scrapeArticle([articlelink])
+        Text = articleInfo[articlelink][0]
+        Published = str(articleInfo[articlelink][1])
+        WordCount = str(articleInfo[articlelink][2])
+        CharCount = str(articleInfo[articlelink][3])
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
