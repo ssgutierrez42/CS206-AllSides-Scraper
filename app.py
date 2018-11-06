@@ -57,6 +57,14 @@ dailyArticles = []
 def clean_bias_rating(rawRating):
     return rawRating.replace("Political News Media Bias Rating:", "").strip()
 
+def exists_in_articles(link):
+    with db_conn.cursor() as cur:
+        cur.execute("SELECT link, COUNT(*) FROM articles WHERE link = %s GROUP BY link",(link))
+        if cur.rowcount != 0:
+            print("Headline already exists, so skipping.")
+            return True
+    return False
+
 ## Script Functions
 def scrape_featured_blocks():
     featured_block_tag = 'block-views-story-id-single-story-block'
@@ -145,11 +153,9 @@ def update_database_articles(articlesList):
     for index, article in enumerate(articlesList):
         print("Updating Article #" + str(index) + "/" + str(len(articlesList)))
 
-        with db_conn.cursor() as cur:
-            cur.execute("SELECT link, COUNT(*) FROM articles WHERE link = %s GROUP BY link",(article.link))
-            if cur.rowcount != 0:
-                print("Article already exists, so skipping.")
-                continue
+        if exists_in_articles(article.link):
+            print("Article already exists, so skipping.")
+            continue
 
         articlelink = article.link
 
@@ -172,18 +178,16 @@ def update_database_headlines(headlinesList):
     for index, headline in enumerate(headlinesList):
         print("Updating Headline #" + str(index) + "/" + str(len(headlinesList)))
 
-        with db_conn.cursor() as cur:
-            cur.execute("SELECT link, COUNT(*) FROM articles WHERE link = %s GROUP BY link",(headline.link))
-            if cur.rowcount != 0:
-                print("Headline already exists, so skipping.")
-                continue
+        if exists_in_articles(headline.link):
+            print("Headline already exists, so skipping.")
+            continue
 
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
             _wordCount = len(headline.description.split())
             wordCount = _wordCount if (headline.description is not None) else None
-            
+
             cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, wordcount, source) values(%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, headline.title, headline.topic, headline.description, headline.link, headline.political_side, wordCount, headline.source, formatted_date))
             db_conn.commit()
         update_database_articles(headline.opinionArticles) #TODO reference the ID of the articles created here in a new table of relations
