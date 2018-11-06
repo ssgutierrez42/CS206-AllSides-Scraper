@@ -151,7 +151,7 @@ def scrape_columns():
             continue
 
 #add articles to database
-def update_database_articles(articlesList):
+def update_database_articles(articlesList, headlineId = None):
     if db_conn is None:
         return
 
@@ -192,6 +192,14 @@ def update_database_articles(articlesList):
             cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source, wordcount, text, date_published, author) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, articleInfo.wordCount, articleInfo.text, articleInfo.date, articleInfo.authors, formatted_date))
             db_conn.commit()
 
+            if headlineId is not None:
+                relatedToId = cur.lastrowid
+                print("Updating relations between " + str(headlineId) + " and " + str(relatedToId))
+
+                cur.execute('insert into article_relations (article_id, related_to_id, relation_type) values(%s, %s, %s)', (headlineId, relatedToId, article.political_side))
+                db_conn.commit()
+
+
 def update_database_headlines(headlinesList):
     if db_conn is None:
         return
@@ -214,9 +222,10 @@ def update_database_headlines(headlinesList):
             wordCount = _wordCount if (headline.description is not None) else None
 
             cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, wordcount, source, author, text) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, headline.title, headline.topic, headline.description, headline.link, headline.political_side, wordCount, headline.source, headline.source, headline.description, formatted_date))
+
             db_conn.commit()
-            
-        update_database_articles(headline.opinionArticles) #TODO reference the ID of the articles created here in a new table of relations
+
+            update_database_articles(headline.opinionArticles, cur.lastrowid)
 
 def print_result():
     print("BLOCKS")
