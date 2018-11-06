@@ -1,6 +1,7 @@
 ## Imports
 from articleScraper import scrape_article
 from articleScraper import OpenArticle
+from datetime import datetime
 
 #RDS
 import secrets
@@ -11,18 +12,6 @@ from bs4 import BeautifulSoup
 
 #Database Connection
 import pymysql
-from datetime import datetime
-
-username = secrets.db_username
-password = secrets.db_password
-db_name = secrets.db_name
-rds_host = secrets.host
-
-try:
-    db_conn = pymysql.connect(rds_host, user=username, passwd=password, db=db_name, connect_timeout=5)
-except:
-    logger.error("ERROR: Unexpected error: Could not connect to MySql instance.")
-    sys.exit()
 
 ## Model Classes
 #Featured Info
@@ -53,6 +42,18 @@ all_sides_soup = BeautifulSoup(all_sides_balanced_html, 'html.parser')
 #FeaturedBlocks
 featuredBlocks = []
 dailyArticles = []
+
+# Connect to DB
+username = secrets.db_username
+password = secrets.db_password
+db_name = secrets.db_name
+rds_host = secrets.host
+
+try:
+    db_conn = pymysql.connect(rds_host, user=username, passwd=password, db=db_name, connect_timeout=5)
+except:
+    logger.error("ERROR: Unexpected error: Could not connect to MySql instance.")
+    sys.exit()
 
 def clean_bias_rating(rawRating):
     return rawRating.replace("Political News Media Bias Rating:", "").strip()
@@ -258,7 +259,13 @@ def print_result():
         print("\n\n")
 
 ## On runtime, do this:
-def main():
+def handler():
+    all_sides_balanced_html = requests.get(all_sides_balanced).text
+    all_sides_soup = BeautifulSoup(all_sides_balanced_html, 'html.parser')
+
+    featuredBlocks.clear()
+    dailyArticles.clear()
+
     scrape_featured_blocks()
     scrape_columns()
     #print_result()
@@ -269,4 +276,4 @@ def main():
     print("[DB] Updating Featured Headlines")
     update_database_headlines(featuredBlocks)
 
-main()
+handler()
