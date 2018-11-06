@@ -1,12 +1,12 @@
 ## Imports
+from articleScraper import scrape_article
+from articleScraper import OpenArticle
+
 #RDS
 import secrets
-import allSidesScraper4
-from allSidesScraper4 import scrapeArticle
-from allSidesScraper4 import driver
-from allSidesScraper4 import printable
+
 #Scraping
-import urllib2
+import requests
 from bs4 import BeautifulSoup
 
 #Database Connection
@@ -47,7 +47,7 @@ class DailyArticle:
 ## Script Variables
 #AllSides
 all_sides_balanced = 'https://www.allsides.com/unbiased-balanced-news' #HomePage
-all_sides_balanced_html = urllib2.urlopen(all_sides_balanced)
+all_sides_balanced_html = requests.get(all_sides_balanced).text
 all_sides_soup = BeautifulSoup(all_sides_balanced_html, 'html.parser')
 
 #FeaturedBlocks
@@ -81,7 +81,7 @@ def scrape_featured_blocks():
         for feature_soup in feature_thumbs_soup:
             thumb = DailyArticle()
             thumb.topic = block.topic
-            thumb.description = "N/A"
+            thumb.description = None
 
             title_soup = feature_soup.find('div',class_='news-title').find('a')
             thumb.title = title_soup.text
@@ -131,7 +131,7 @@ def scrape_columns():
             elif body_soup.text is not None:
                 article.description = body_soup.text.strip()
             else:
-                article.description = "N/A"
+                article.description = None
 
             dailyArticles.append(article)
         except:
@@ -142,78 +142,92 @@ def update_database_articles(articlesList):
     if db_conn is None:
         return
 
-    for article in articlesList:
-        articlelink = article.link.encode('ascii','ignore')
-        articleInfo = scrapeArticle([articlelink])
-        Text = str(articleInfo[0])
-        Published = str(articleInfo[1])
-        WordCount = str(articleInfo[2])
-        CharCount = str(articleInfo[3])
-        authors = str(articleInfo[4])
-        print(Text)
-        print(Published)
-        print(WordCount)
-        print(CharCount)
-        print(authors)
+    for index, article in enumerate(articlesList):
+        print("Updating Article #" + str(index) + "/" + str(len(articlesList)))
+
+        with db_conn.cursor() as cur:
+            cur.execute("SELECT link, COUNT(*) FROM articles WHERE link = %s GROUP BY link",(article.link))
+            if cur.rowcount != 0:
+                print("Article already exists, so skipping.")
+                continue
+
+        articlelink = article.link
+
+        scrapedArticles = scrape_article([articlelink])
+        articleInfo = scrapedArticles[0] if (len(scrapedArticles) > 0) else OpenArticle()
+
+        # print(articleInfo.authors)
+        # print(articleInfo.date)
+
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
-            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source, wordcount, text, date_published, author) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, WordCount, Text, Published, authors, formatted_date))
+            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source, wordcount, text, date_published, author) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, articleInfo.wordCount, articleInfo.text, articleInfo.date, articleInfo.authors, formatted_date))
             db_conn.commit()
 
 def update_database_headlines(headlinesList):
     if db_conn is None:
         return
 
-    for headline in headlinesList:
+    for index, headline in enumerate(headlinesList):
+        print("Updating Headline #" + str(index) + "/" + str(len(headlinesList)))
+
+        with db_conn.cursor() as cur:
+            cur.execute("SELECT link, COUNT(*) FROM articles WHERE link = %s GROUP BY link",(headline.link))
+            if cur.rowcount != 0:
+                print("Headline already exists, so skipping.")
+                continue
+
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
-            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source) values(%s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, headline.title, headline.topic, headline.description, headline.link, headline.political_side, headline.source, formatted_date))
-            #cur.execute('insert into articles (title, topic, description) values(%s, %s, %s)', (title, topic, description))
+            _wordCount = len(headline.description.split())
+            wordCount = _wordCount if (headline.description is not None) else None
+            
+            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, wordcount, source) values(%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, headline.title, headline.topic, headline.description, headline.link, headline.political_side, wordCount, headline.source, formatted_date))
             db_conn.commit()
         update_database_articles(headline.opinionArticles) #TODO reference the ID of the articles created here in a new table of relations
 
 def print_result():
-    print "BLOCKS"
+    print("BLOCKS")
     for block in featuredBlocks:
-        print "Headline:"
-        print block.title
-        print block.description
-        print block.link
-        print block.topic
-        print "\n-----\n"
-        print "Thumbnails:"
+        print("Headline:")
+        print(block.title)
+        print(block.description)
+        print(block.link)
+        print(block.topic)
+        print("\n-----\n")
+        print("Thumbnails:")
         for thumb in block.opinionArticles:
-            print thumb.title
-            print thumb.link
-            print thumb.topic
-            print "SOURCE: " + thumb.source
-            print "SIDE: " + thumb.political_side
-            print "\n"
-        print "\n\n"
+            print(thumb.title)
+            print(thumb.link)
+            print(thumb.topic)
+            print("SOURCE: " + thumb.source)
+            print("SIDE: " + thumb.political_side)
+            print("\n")
+        print("\n\n")
 
-    print "ARTICLES"
+    print("ARTICLES")
     for article in dailyArticles:
-        print "Article"
-        print "Title: " + article.title
-        print "Topic: " + article.topic
-        print "Desc: " + article.description
-        print article.source
-        print article.link
-        print article.political_side
-        print "\n\n"
+        print("Article")
+        print("Title: " + article.title)
+        print("Topic: " + article.topic)
+        print("Desc: " + article.description)
+        print(article.source)
+        print(article.link)
+        print(article.political_side)
+        print("\n\n")
 
 ## On runtime, do this:
 def main():
     scrape_featured_blocks()
     scrape_columns()
-    print_result()
+    #print_result()
 
-    print "[DB] Updating Articles"
+    print("[DB] Updating Articles")
     update_database_articles(dailyArticles)
 
-    print "[DB] Updating Featured Headlines"
+    print("[DB] Updating Featured Headlines")
     update_database_headlines(featuredBlocks)
-    driver.close()
+
 main()
