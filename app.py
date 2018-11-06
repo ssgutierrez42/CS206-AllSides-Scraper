@@ -57,6 +57,11 @@ dailyArticles = []
 def clean_bias_rating(rawRating):
     return rawRating.replace("Political News Media Bias Rating:", "").strip()
 
+def clean_relative_url(url):
+    if url.startswith('/'):
+        return 'https://www.allsides.com' + url
+    return url
+
 def exists_in_articles(link):
     with db_conn.cursor() as cur:
         cur.execute("SELECT link, COUNT(*) FROM articles WHERE link = %s GROUP BY link",(link))
@@ -75,7 +80,7 @@ def scrape_featured_blocks():
         block.opinionArticles = []
 
         title_soup = featured_block.find('h2',class_='story-title').find('a')
-        block.link = title_soup['href']
+        block.link = clean_relative_url(title_soup['href'])
         block.title = title_soup.text
 
         description_soup = featured_block.find('div',class_='story-description').find('a')
@@ -93,7 +98,7 @@ def scrape_featured_blocks():
 
             title_soup = feature_soup.find('div',class_='news-title').find('a')
             thumb.title = title_soup.text
-            thumb.link = 'https://www.allsides.com/' + title_soup['href']
+            thumb.link = clean_relative_url(title_soup['href'])
 
             #political_side_soup = feature_soup.find('div',class_='global-bias')
             #thumb.political_side = political_side_soup.text
@@ -120,7 +125,7 @@ def scrape_columns():
 
             title_soup = row.find('div',class_='news-title').find('a')
             article.title = title_soup.text
-            article.link = title_soup['href']
+            article.link = clean_relative_url(title_soup['href'])
 
             topic_soup = row.find('div',class_='news-topic').find('a')
             article.topic = topic_soup.text
@@ -157,17 +162,33 @@ def update_database_articles(articlesList):
             print("Article already exists, so skipping.")
             continue
 
-        articlelink = article.link
-
-        scrapedArticles = scrape_article([articlelink])
-        articleInfo = scrapedArticles[0] if (len(scrapedArticles) > 0) else OpenArticle()
-
-        # print(articleInfo.authors)
-        # print(articleInfo.date)
-
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
+
+            articlelink = article.link
+
+            scrapedArticles = scrape_article([articlelink])
+            articleInfo = scrapedArticles[0] if (len(scrapedArticles) > 0) else OpenArticle()
+
+            if (articleInfo.authors is None) or (articleInfo.authors is ''):
+                articleInfo.authors = article.source
+
+            if article.description is None:
+                article.description = article.title
+
+            if (articleInfo.text is None) or (articleInfo.text is ''):
+                if article.description is not None:
+                    articleInfo.text = article.description
+                else:
+                    articleInfo.text = article.title
+
+            if (articleInfo.wordCount is 0) or (articleInfo.wordCount is None):
+                articleInfo.wordCount = len(article.text.split())
+
+            # print(articleInfo.authors)
+            # print(articleInfo.date)
+
             cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, source, wordcount, text, date_published, author) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, article.title, article.topic, article.description, article.link, article.political_side, article.source, articleInfo.wordCount, articleInfo.text, articleInfo.date, articleInfo.authors, formatted_date))
             db_conn.commit()
 
@@ -185,11 +206,16 @@ def update_database_headlines(headlinesList):
         now = datetime.utcnow()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         with db_conn.cursor() as cur:
+
+            if (headline.description is None) or (headline.description is ''):
+                headline.description = headline.title
+
             _wordCount = len(headline.description.split())
             wordCount = _wordCount if (headline.description is not None) else None
 
-            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, wordcount, source) values(%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, headline.title, headline.topic, headline.description, headline.link, headline.political_side, wordCount, headline.source, formatted_date))
+            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, side, wordcount, source, author, text) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, formatted_date, headline.title, headline.topic, headline.description, headline.link, headline.political_side, wordCount, headline.source, headline.source, headline.description, formatted_date))
             db_conn.commit()
+            
         update_database_articles(headline.opinionArticles) #TODO reference the ID of the articles created here in a new table of relations
 
 def print_result():

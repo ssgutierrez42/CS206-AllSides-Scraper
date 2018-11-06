@@ -43,7 +43,12 @@ def scrape_article(listOfAllsideUrls):
 			wordCount = len(text.split())
 
 			article = OpenArticle()
-			article.authors = ', '.join(authors)
+
+			if (len(authors) > 0):
+				article.authors = ', '.join(authors)
+			else:
+				article.authors = None
+
 			article.date = date
 			article.text = text
 			article.characterCount = characterCount
