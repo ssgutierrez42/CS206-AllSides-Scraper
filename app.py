@@ -269,6 +269,7 @@ def scrape_from_newsapi():
 
     for article in articles:
         print(article.title)
+        #TODO: store available details about article in DB here
 
 
 ## On runtime, do this:
@@ -289,7 +290,7 @@ def handler():
     print("[DB] Updating Featured Headlines")
     update_database_headlines(featuredBlocks)
 
-    #scrape_from_newsapi()
+    #scrape_from_newsapi() #uncomment this when code is ready for production
 
 #handler()
-#scrape_from_newsapi()
+#scrape_from_newsapi() #uncomment this for testing
