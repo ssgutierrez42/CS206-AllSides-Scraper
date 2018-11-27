@@ -1,4 +1,5 @@
-from newsapi import NewsApiClient
+from newsapi.newsapi_client import NewsApiClient
+
 import string
 from newspaper import Article
 
@@ -8,6 +9,7 @@ def printable(line):
 	filtered_string = filter(lambda x: x in string.printable, line)
 	line = "".join(filtered_string)
 	return line
+
 #bigNewsList
 bigNewsList = list()
 bigNewsList.append('associated-press')
@@ -47,23 +49,47 @@ bigNews = ",".join(bigNewsList)
 
 smallNews='bbc-news,fox-news,the-new-york-times,the-washington-post,the-wall-street-journal'
 newsapi = NewsApiClient(api_key='e388bce4290446afa545681fac60366f')
-#NewsList = bigNews or smallNews
-def scrape(newsList):
-	all_articles = newsapi.get_everything(language='en',
-	                                      sort_by='relevancy',
-	                                      sources=newsList)
 
-	for thing in all_articles:
-		text = all_articles[thing]
-		if(len(str(text))<10):
-			continue
-		for article in text:
-			source = article['source']['name']
-			author = article['author']
-			title = article['title']
-			description = article['description']
-			url = article['url']
-			published = article['publishedAt']
-			content = article['content']
-			wordCount = len(content.split(' '))
-	return (source,author,title,description,url,published,content,wordCount)
+class NewsApiArticle:
+    source = ""
+    author = ""
+    title = ""
+    description = ""
+    url = ""
+    published = ""
+    content = ""
+    wordCount = ""
+
+#NewsList = bigNews or smallNews
+
+def newsapi_scrape():
+    print("newsapi_scrape")
+    all_articles = newsapi.get_everything(language='en',sort_by='relevancy',sources=smallNews)
+
+    parsedArticles = []
+
+    for thing in all_articles:
+        articleObjects = all_articles[thing]
+
+        if (len(str(articleObjects))<10):
+            continue
+
+        for article in articleObjects:
+            entry = NewsApiArticle()
+
+            #print(article)
+
+            entry.source = article['source']['name']
+            entry.author = article['author']
+            entry.title = article['title']
+            entry.description = article['description']
+            entry.url = article['url']
+            entry.published = article['publishedAt'] #date
+            entry.content = article['content']
+
+            if entry.content is not None:
+                entry.wordCount = len(entry.content.split(' '))
+
+            parsedArticles.append(entry)
+
+    return parsedArticles

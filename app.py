@@ -1,6 +1,9 @@
 ## Imports
 from articleScraper import scrape_article
 from articleScraper import OpenArticle
+from newsApi import newsapi_scrape
+from newsApi import NewsApiArticle
+
 from datetime import datetime
 
 #RDS
@@ -87,8 +90,10 @@ def scrape_featured_blocks():
         description_soup = featured_block.find('div',class_='story-description').find('a')
         block.description = description_soup.text
 
-        topic_soup = featured_block.find('div',class_='news-topic').find('a')
-        block.topic = topic_soup.text
+        _topic_soup = featured_block.find('div',class_='news-topic')
+        if _topic_soup is not None:
+            topic_soup = featured_block.find('div',class_='news-topic').find('a')
+            block.topic = topic_soup.text
 
         #feature-thumbs (three other thumbnail article suggestions)
         feature_thumbs_soup = featured_block.find_all('div',class_='feature-thumbs')
@@ -258,6 +263,14 @@ def print_result():
         print(article.political_side)
         print("\n\n")
 
+
+def scrape_from_newsapi():
+    articles = newsapi_scrape()
+
+    for article in articles:
+        print(article.title)
+
+
 ## On runtime, do this:
 def handler():
     all_sides_balanced_html = requests.get(all_sides_balanced).text
@@ -276,4 +289,7 @@ def handler():
     print("[DB] Updating Featured Headlines")
     update_database_headlines(featuredBlocks)
 
-handler()
+    #scrape_from_newsapi()
+
+#handler()
+#scrape_from_newsapi()
