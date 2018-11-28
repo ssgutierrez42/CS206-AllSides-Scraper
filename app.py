@@ -269,6 +269,13 @@ def scrape_from_newsapi():
 
     for article in articles:
         print(article.title)
+        if db_conn is None:
+            return
+        with db_conn.cursor() as cur:
+            now = datetime.utcnow()
+            formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
+            cur.execute('insert into articles (created_at, updated_at, title, topic, description, link, wordcount, source, author, text) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (article.published, formatted_date, article.title, article.topic, article.description, article.url, article.wordCount, article.source, article.author, article.content, formatted_date))
+            db_conn.commit()
         #TODO: store available details about article in DB here
 
 
@@ -290,7 +297,7 @@ def handler():
     print("[DB] Updating Featured Headlines")
     update_database_headlines(featuredBlocks)
 
-    #scrape_from_newsapi() #uncomment this when code is ready for production
+    scrape_from_newsapi() #uncomment this when code is ready for production
 
 #handler()
 #scrape_from_newsapi() #uncomment this for testing

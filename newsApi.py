@@ -59,6 +59,7 @@ class NewsApiArticle:
     published = ""
     content = ""
     wordCount = ""
+    topic = ""
 
 #NewsList = bigNews or smallNews
 
