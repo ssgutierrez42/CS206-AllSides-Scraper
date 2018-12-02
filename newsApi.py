@@ -2,6 +2,10 @@ from newsapi.newsapi_client import NewsApiClient
 
 import string
 from newspaper import Article
+import newspaper
+from pprint import pprint
+
+
 
 def printable(line):
 	if (line == None):
@@ -58,39 +62,48 @@ class NewsApiArticle:
     url = ""
     published = ""
     content = ""
-    wordCount = ""
-    topic = ""
+    wordCount = 0
+    topics = ""
 
 #NewsList = bigNews or smallNews
 
+#fix 404, authors, sources 
 def newsapi_scrape():
     print("newsapi_scrape")
-    all_articles = newsapi.get_everything(language='en',sort_by='relevancy',sources=smallNews)
-
     parsedArticles = []
+    sites = smallNews.split(',')
+    for newsSite in sites:
+        all_articles = newsapi.get_everything(language='en',sort_by='relevancy',sources=newsSite)
 
-    for thing in all_articles:
-        articleObjects = all_articles[thing]
 
-        if (len(str(articleObjects))<10):
-            continue
+        for thing in all_articles:
+            articleObjects = all_articles[thing]
 
-        for article in articleObjects:
-            entry = NewsApiArticle()
+            if (len(str(articleObjects))<10):
+                continue
 
-            #print(article)
+            for article in articleObjects:
+                    entry = NewsApiArticle()
+                    entry.source = newsSite.replace('-',' ')
+                    entry.author = article['author']
+                    entry.title = article['title']
+                    entry.description = article['description']
+                    entry.url = article['url']
+                    entry.published = article['publishedAt'] #date
+                    entry.content = article['content']
+                    if(entry.content == None):
+                        continue
 
-            entry.source = article['source']['name']
-            entry.author = article['author']
-            entry.title = article['title']
-            entry.description = article['description']
-            entry.url = article['url']
-            entry.published = article['publishedAt'] #date
-            entry.content = article['content']
-
-            if entry.content is not None:
-                entry.wordCount = len(entry.content.split(' '))
-
-            parsedArticles.append(entry)
-
+                    url = str(entry.url)
+                    art = Article(url)
+                    art.download()
+                    try:
+                        art.parse()
+                    except:
+                        continue
+                    art.nlp()
+                    topicString = ",".join(art.keywords)
+                    entry.topics = topicString
+                    parsedArticles.append(entry)
+                    entry.wordCount = len(art.text.split())
     return parsedArticles
