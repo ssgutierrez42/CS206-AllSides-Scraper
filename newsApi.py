@@ -72,9 +72,9 @@ def newsapi_scrape():
     print("newsapi_scrape")
     parsedArticles = []
     sites = smallNews.split(',')
+
     for newsSite in sites:
         all_articles = newsapi.get_everything(language='en',sort_by='relevancy',sources=newsSite)
-
 
         for thing in all_articles:
             articleObjects = all_articles[thing]
@@ -104,6 +104,10 @@ def newsapi_scrape():
                     art.nlp()
                     topicString = ",".join(art.keywords)
                     entry.topics = topicString
-                    parsedArticles.append(entry)
                     entry.wordCount = len(art.text.split())
+                    if(entry.wordCount == 0):
+                        continue
+                    if(entry.author == None or 'www' in entry.author):
+                        continue
+                    parsedArticles.append(entry)
     return parsedArticles
