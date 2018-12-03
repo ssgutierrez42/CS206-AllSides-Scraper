@@ -51,7 +51,6 @@ username = secrets.db_username
 password = secrets.db_password
 db_name = secrets.db_name
 rds_host = secrets.host
-
 try:
     db_conn = pymysql.connect(rds_host, user=username, passwd=password, db=db_name, connect_timeout=5)
 except:
@@ -263,9 +262,9 @@ def print_result():
         print(article.political_side)
         print("\n\n")
 
-
+authors = set()
 def scrape_from_newsapi():
-    articles = newsapi_scrape()
+    articles, authors = newsapi_scrape()
 
     for article in articles:
         if db_conn is None:
@@ -277,7 +276,17 @@ def scrape_from_newsapi():
             db_conn.commit()
         #TODO: store available details about article in DB here
 
-
+def add_author_information():
+    print("Putting in Authors")
+    for author in authors:
+        print(author.title)
+        if db_conn is None:
+            return
+        with db_conn.cursor() as cur:
+            now = datetime.utcnow()
+            formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
+            cur.execute('insert into authors (updated_at, name, location, job, beats, description) values(%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, author.name, author.location, author.title, author.beats, author.description, formatted_date))
+            db_conn.commit()
 ## On runtime, do this:
 def handler():
     all_sides_balanced_html = requests.get(all_sides_balanced).text
@@ -297,6 +306,6 @@ def handler():
     update_database_headlines(featuredBlocks)
 
     scrape_from_newsapi() #uncomment this when code is ready for production
-
+    add_author_information()
 handler()
 #scrape_from_newsapi() #uncomment this for testing
