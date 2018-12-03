@@ -104,6 +104,12 @@ bigNews = ",".join(bigNewsList)
 smallNews='bbc-news,fox-news,the-new-york-times,the-washington-post,the-wall-street-journal'
 newsapi = NewsApiClient(api_key='e388bce4290446afa545681fac60366f')
 
+def merge_two_dicts(x, y):
+    """Given two dicts, merge them into a new dict as a shallow copy."""
+    z = x.copy()
+    z.update(y)
+    return z
+
 class AuthorInformation:
     name = ""
     location = ""
@@ -121,6 +127,7 @@ class NewsApiArticle:
     content = ""
     wordCount = 0
     topics = ""
+    top_headline = False
 
 def scrapeAuthorInfo(url):
     author = AuthorInformation()
@@ -155,45 +162,55 @@ def newsapi_scrape():
     sites = smallNews.split(',')
 
     for newsSite in sites:
-        all_articles = newsapi.get_top_headlines(language='en',sources=newsSite)
-        for thing in all_articles:
-            articleObjects = all_articles[thing]
+        all_articles_list = list()
+        all_articles1 = newsapi.get_top_headlines(language='en',sources=newsSite)
+        all_articles2 = newsapi.get_everything(language='en',sources=newsSite, sort_by = 'relevancy')
+        all_articles_list.append(all_articles1)
+        all_articles_list.append(all_articles2)
+        for all_articles in all_articles_list:
+            if(all_articles == all_articles_list[0]):
+                top_h = True
+            else:
+                top_h = False
+            for thing in all_articles:
+                articleObjects = all_articles[thing]
 
-            if (len(str(articleObjects))<10):
-                continue
+                if (len(str(articleObjects))<10):
+                    continue
 
-            for article in articleObjects:
-                    entry = NewsApiArticle()
-                    entry.source = newsSite.replace('-',' ')
-                    entry.author = article['author']
-                    entry.title = article['title']
-                    entry.description = article['description']
-                    entry.url = article['url']
-                    entry.published = article['publishedAt'] #date
-                    entry.content = article['content']
-                    if(entry.content == None):
-                        continue
+                for article in articleObjects:
+                        entry = NewsApiArticle()
+                        entry.source = newsSite.replace('-',' ')
+                        entry.author = article['author']
+                        entry.title = article['title']
+                        entry.description = article['description']
+                        entry.url = article['url']
+                        entry.published = article['publishedAt'] #date
+                        entry.content = article['content']
+                        entry.top_headline = top_h
+                        if(entry.content == None):
+                            continue
 
-                    url = str(entry.url)
-                    art = Article(url)
-                    art.download()
-                    try:
-                        art.parse()
-                    except:
-                        continue
-                    art.nlp()
-                    topicString = ",".join(art.keywords)
-                    entry.topics = topicString
-                    entry.wordCount = len(art.text.split())
-                    if(entry.wordCount == 0):
-                        continue
-                    if(entry.author == None or 'www' in entry.author):
-                        continue
-                    try:
-                        authorUrl = getAuthUrl(entry.author.split(',')[0])
-                        singleAuthor = scrapeAuthorInfo(authorUrl.strip('articles'))
-                        authors.add(singleAuthor)
-                    except:
-                        pass
-                    parsedArticles.append(entry)
+                        url = str(entry.url)
+                        art = Article(url)
+                        art.download()
+                        try:
+                            art.parse()
+                        except:
+                            continue
+                        art.nlp()
+                        topicString = ",".join(art.keywords)
+                        entry.topics = topicString
+                        entry.wordCount = len(art.text.split())
+                        if(entry.wordCount == 0):
+                            continue
+                        if(entry.author == None or 'www' in entry.author):
+                            continue
+                        try:
+                            authorUrl = getAuthUrl(entry.author.split(',')[0])
+                            singleAuthor = scrapeAuthorInfo(authorUrl.strip('articles'))
+                            authors.add(singleAuthor)
+                        except:
+                            pass
+                        parsedArticles.append(entry)
     return parsedArticles, authors

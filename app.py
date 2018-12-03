@@ -284,16 +284,13 @@ def add_author_information(authors):
 
 def scrape_from_newsapi():
     articles, authors = newsapi_scrape()
-    for thing in authors:
-        print(thing.beats) 
-
     for article in articles:
         if db_conn is None:
             return
         with db_conn.cursor() as cur:
             now = datetime.utcnow()
             formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
-            cur.execute('insert into articles (created_at, date_published, topic, updated_at, title, description, link, wordcount, source, author, text) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, article.published, article.topics, formatted_date, article.title, article.description, article.url, article.wordCount, article.source, article.author, article.content, formatted_date))
+            cur.execute('insert into articles (created_at, date_published, topic, updated_at, title, description, link, wordcount, source, author, text, is_headline) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, article.published, article.topics, formatted_date, article.title, article.description, article.url, article.wordCount, article.source, article.author, article.content, article.top_headline, formatted_date))
             db_conn.commit()
     add_author_information(authors)
         #TODO: store available details about article in DB here
