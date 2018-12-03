@@ -36,6 +36,13 @@ class DailyArticle:
     political_side = ""
     source = ""
 
+class AuthorInformation:
+    name = ""
+    location = ""
+    title = ""
+    beats = ""
+    description = ""
+
 ## Script Variables
 #AllSides
 all_sides_balanced = 'https://www.allsides.com/unbiased-balanced-news' #HomePage
@@ -262,9 +269,23 @@ def print_result():
         print(article.political_side)
         print("\n\n")
 
-authors = set()
+def add_author_information(authors):
+    print("Putting in Authors")
+    for author in authors:
+        if(author.name == ''):
+            continue
+        if db_conn is None:
+            return
+        with db_conn.cursor() as cur:
+            now = datetime.utcnow()
+            formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
+            cur.execute('insert into authors (updated_at, name, location, job, beats, description) values(%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, author.name, author.location, author.title, author.beats, author.description, formatted_date))
+            db_conn.commit()
+
 def scrape_from_newsapi():
     articles, authors = newsapi_scrape()
+    for thing in authors:
+        print(thing.beats) 
 
     for article in articles:
         if db_conn is None:
@@ -274,19 +295,10 @@ def scrape_from_newsapi():
             formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
             cur.execute('insert into articles (created_at, date_published, topic, updated_at, title, description, link, wordcount, source, author, text) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, article.published, article.topics, formatted_date, article.title, article.description, article.url, article.wordCount, article.source, article.author, article.content, formatted_date))
             db_conn.commit()
+    add_author_information(authors)
         #TODO: store available details about article in DB here
 
-def add_author_information():
-    print("Putting in Authors")
-    for author in authors:
-        print(author.title)
-        if db_conn is None:
-            return
-        with db_conn.cursor() as cur:
-            now = datetime.utcnow()
-            formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
-            cur.execute('insert into authors (updated_at, name, location, job, beats, description) values(%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE updated_at = %s', (formatted_date, author.name, author.location, author.title, author.beats, author.description, formatted_date))
-            db_conn.commit()
+
 ## On runtime, do this:
 def handler():
     all_sides_balanced_html = requests.get(all_sides_balanced).text
@@ -306,6 +318,5 @@ def handler():
     update_database_headlines(featuredBlocks)
 
     scrape_from_newsapi() #uncomment this when code is ready for production
-    add_author_information()
 handler()
 #scrape_from_newsapi() #uncomment this for testing

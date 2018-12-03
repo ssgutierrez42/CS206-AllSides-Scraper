@@ -17,7 +17,7 @@ import re
 import search_google.api
 import enum
 from gsearch.googlesearch import search
-
+from IPython.display import HTML
 #results = search('muckrack erik wemple')
 #link = results[0][1]
 buildargs = {
@@ -25,11 +25,23 @@ buildargs = {
   'version': 'v1',
   'developerKey': 'AIzaSyCdMqTmsONtYV8x4IHruTgIOQxzMAZRuBE'
 }
-
+subscription_key = "438df901be8e4b68b447d87071674860"
+assert subscription_key
+search_url = "https://api.cognitive.microsoft.com/bing/v7.0/search"
 def getAuthUrl(author):
-    cseargs = {'q': author,'cx': '002127797185034144380:9cz4vhqwpfq','num': 1}
-    results = search_google.api.results(buildargs, cseargs)
-    return results.links[0]
+    search_term = "muckrack "+author
+    headers = {"Ocp-Apim-Subscription-Key" : subscription_key}
+    params  = {"q": search_term, "textDecorations":True, "textFormat":"HTML"}
+    response = requests.get(search_url, headers=headers, params=params)
+    response.raise_for_status()
+    search_results = response.json()
+    return search_results["webPages"]["value"][0]['url']
+
+
+    #cseargs = {'q': author,'cx': '002127797185034144380:9cz4vhqwpfq','num': 1}
+    #results = search_google.api.results(buildargs, cseargs)
+    #return results.links[0]
+
 
 desktop_agents = ['Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36',
                  'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36',
@@ -98,7 +110,6 @@ class AuthorInformation:
     title = ""
     beats = ""
     description = ""
-
 
 class NewsApiArticle:
     source = ""
