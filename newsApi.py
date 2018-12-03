@@ -155,7 +155,7 @@ def newsapi_scrape():
     sites = smallNews.split(',')
 
     for newsSite in sites:
-        all_articles = newsapi.get_everything(language='en',sort_by='relevancy',sources=newsSite)
+        all_articles = newsapi.get_top_headlines(language='en',sort_by='relevancy',sources=newsSite)
 
         for thing in all_articles:
             articleObjects = all_articles[thing]
