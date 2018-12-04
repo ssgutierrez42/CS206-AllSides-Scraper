@@ -159,7 +159,7 @@ def newsapi_scrape():
     print("newsapi_scrape")
     parsedArticles = []
     authors = set()
-    sites = smallNews.split(',')
+    sites = bigNews.split(',')
 
     for newsSite in sites:
         all_articles_list = list()
